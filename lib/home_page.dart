@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart' hide RefreshIndicatorMode;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:timer/NoScaleFlexibleSpaceBar.dart';
+import 'package:timer/noscale_flexible_spacebar.dart';
 import 'package:timer/timer_painter.dart';
 import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart' as extended;
 
