@@ -1,10 +1,10 @@
-import 'package:flutter/cupertino.dart' hide RefreshIndicatorMode;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart' as extended;
 import 'package:timer/noscale_flexible_spacebar.dart';
 import 'package:timer/timer_painter.dart';
-import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart' as extended;
 
 class HomePage extends StatefulWidget {
   @override
@@ -13,12 +13,13 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
-  final Color primaryColor = Colors.deepOrangeAccent; //主色
+  final Color _primaryColor = Colors.deepOrangeAccent; //主色
   Animation<int> _intAnim;  //控制圈圈
   AnimationController _animationController; //控制圈圈
-  final int lineNum = 180;    //控制圈圈的竖线的数量
   bool _isActivated = false;  //是否点过了开始
   bool _isAnimating = false;  //理解为是否在转圈圈
+  bool _isAppbarExpanded = true;  //bar是否为展开状态
+  final int _lineNum = 180;    //控制圈圈的竖线的数量
   final double _appbarExpandedHeight = 280; //bar展开的高度
   final double _appbarHeight = 120; //bar折叠后的高度
   double _fontSize = 38;  //计时不够一小时是不显示 小时(hour) 的，当显示 小时 时将这个变量调小以适应界面
@@ -27,10 +28,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   DateTime _startTime;  //按下开始时
   DateTime _pauseTime;  //按下暂停时
   DateTime _continueTime;  //按下继续时
-  double get pinnedHeaderHeight => _isActivated ? 120 : 290;
   final ScrollController _sc = ScrollController();
-  bool _isAppbarExpanded = true;  //bar是否为展开状态
   Ticker _ticker; //在此ticker的回调中触发计时功能
+  double get _pinnedHeaderHeight => _isActivated ? 120 : 290;
 
   @override
   void initState() {
@@ -39,7 +39,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     //设置了圈圈转一圈的时间 2000 毫秒
     _animationController = AnimationController(duration: const Duration(milliseconds: 2000), vsync: this);
     ///实际上控制了圈圈的旋转效果[_intAnim.value]是最长彩色短线的位置，变换后就形成了动画效果
-    _intAnim = IntTween(begin: 0, end: lineNum).animate(_animationController);
+    _intAnim = IntTween(begin: 0, end: _lineNum).animate(_animationController);
   }
 
   @override
@@ -99,7 +99,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 width: _appbarExpandedHeight,
                                 height: _appbarExpandedHeight,
                                 child: CustomPaint(
-                                  painter: TimerPainter(lineNum, _intAnim.value, _isActivated),
+                                  painter: TimerPainter(_lineNum, _intAnim.value, _isActivated),
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -120,7 +120,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ];
           },
           pinnedHeaderSliverHeightBuilder: () {
-            return pinnedHeaderHeight;
+            return _pinnedHeaderHeight;
           },
           body: _durationsListView()),
     );
@@ -148,7 +148,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Row(
           children: [
-            Text(realIndex, style: TextStyle(color: primaryColor, fontWeight: FontWeight.w500)),
+            Text(realIndex, style: TextStyle(color: _primaryColor, fontWeight: FontWeight.w500)),
             SizedBox(height: 40, width: 16),
             ValueListenableBuilder(
               valueListenable: _currentDuration,
@@ -193,7 +193,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         Text.rich(
           TextSpan(text: currentDuration[0], children: <InlineSpan>[
             const TextSpan(text: '.'),
-            TextSpan(text: currentDuration[1], style: TextStyle(color: primaryColor))
+            TextSpan(text: currentDuration[1], style: TextStyle(color: _primaryColor))
           ]),
         ),
       ],
@@ -224,10 +224,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         height: 60,
                         child: FlatButton(
                           child: Text(_isAnimating ? '暂停' : '继续'),
-                          textColor: _isAnimating ? primaryColor : Colors.white,
+                          textColor: _isAnimating ? _primaryColor : Colors.white,
                           shape: CircleBorder(
                               side: BorderSide(color: Colors.grey.shade300, width: _isAnimating ? 2 : 0)),
-                          color: _isAnimating ? Colors.transparent : primaryColor,
+                          color: _isAnimating ? Colors.transparent : _primaryColor,
                           onPressed: _onPauseOrContinuePressed,
                         ),
                       ),
@@ -238,7 +238,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     height: 40,
                     child: FlatButton(
                       shape: StadiumBorder(),
-                      color: primaryColor,
+                      color: _primaryColor,
                       textColor: Colors.white,
                       child: const Text('开始'),
                       onPressed: _onStartPressed,
