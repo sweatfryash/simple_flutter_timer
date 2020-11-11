@@ -4,6 +4,6 @@
 
 ## TODO
 - [x] 使用Ticker替换掉Timer
-- [ ] 在mac以及web运行
+- [x] 在mac以及web运行
 - [ ] 继续优化转圈圈的样式
 

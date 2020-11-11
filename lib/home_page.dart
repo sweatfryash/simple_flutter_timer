@@ -134,7 +134,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   bool _handleScrollNotification(ScrollNotification notification) {
     if (notification is ScrollEndNotification) {
-      print(_isAppbarExpanded);
       if (_sc.offset > 0 && _sc.offset < (_appbarExpandedHeight - _appbarHeight)) {
         double target = _isAppbarExpanded ? _appbarExpandedHeight - _appbarHeight : 0;
         _sc.animateTo(target, duration: const Duration(milliseconds: 100), curve: Curves.linear);
