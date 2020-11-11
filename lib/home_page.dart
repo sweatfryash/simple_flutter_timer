@@ -12,43 +12,33 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  final Color primaryColor = Colors.deepOrangeAccent;
-  Animation<int> _intAnim;
-  AnimationController _animationController;
-  final int lineNum = 180;
-  bool _isActivated = false;
-  bool _isAnimating = false;
-  final double _appbarExpandedHeight = 280;
-  final double _appbarHeight = 120;
-  double _fontSize = 38;
 
-  final List<Duration> _durationList = <Duration>[];
-
-  ValueNotifier<Duration> _currentDuration = ValueNotifier(Duration.zero);
-  DateTime _startTime;
-  DateTime _pauseTime;  //  暂停时
-  DateTime _reStartTime;
-
+  final Color primaryColor = Colors.deepOrangeAccent; //主色
+  Animation<int> _intAnim;  //控制圈圈
+  AnimationController _animationController; //控制圈圈
+  final int lineNum = 180;    //控制圈圈的竖线的数量
+  bool _isActivated = false;  //是否点过了开始
+  bool _isAnimating = false;  //理解为是否在转圈圈
+  final double _appbarExpandedHeight = 280; //bar展开的高度
+  final double _appbarHeight = 120; //bar折叠后的高度
+  double _fontSize = 38;  //计时不够一小时是不显示 小时(hour) 的，当显示 小时 时将这个变量调小以适应界面
+  final List<Duration> _durationList = <Duration>[];  ///存放每次点击计次按钮时的[_currentDuration]
+  ValueNotifier<Duration> _currentDuration = ValueNotifier(Duration.zero);  //时刻增长着的，已经累计的时间
+  DateTime _startTime;  //按下开始时
+  DateTime _pauseTime;  //按下暂停时
+  DateTime _continueTime;  //按下继续时
   double get pinnedHeaderHeight => _isActivated ? 120 : 290;
   final ScrollController _sc = ScrollController();
-  bool _isAppbarExpanded = true;
+  bool _isAppbarExpanded = true;  //bar是否为展开状态
+  Ticker _ticker; //在此ticker的回调中触发计时功能
 
-  Ticker _ticker;
   @override
   void initState() {
     super.initState();
-    _ticker = createTicker((Duration elapsed) {
-      DateTime now = DateTime.now();
-      _currentDuration.value = now.difference(_startTime);
-      if (_currentDuration.value.inHours != 0 && _fontSize == 38) {
-        //加入显示小时位的话字体要变小
-        setState(() {
-          _fontSize = 32;
-        });
-      }
-    });
-
+    _ticker = createTicker(_onTick);  //构造一个Ticker并添加了回调
+    //设置了圈圈转一圈的时间 2000 毫秒
     _animationController = AnimationController(duration: const Duration(milliseconds: 2000), vsync: this);
+    ///实际上控制了圈圈的旋转效果[_intAnim.value]是最长彩色短线的位置，变换后就形成了动画效果
     _intAnim = IntTween(begin: 0, end: lineNum).animate(_animationController);
   }
 
@@ -71,85 +61,72 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               duration: const Duration(milliseconds: 150),
             ),
             Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: _handleScrollNotification,
-                child: extended.NestedScrollView(
-                    controller: _sc,
-                    headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-                      return <Widget>[
-                        SliverAppBar(
-                          expandedHeight: _appbarExpandedHeight,
-                          toolbarHeight: _appbarHeight,
-                          elevation: 0,
-                          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-                          flexibleSpace: ValueListenableBuilder(
-                              valueListenable: _currentDuration,
-                              builder: (BuildContext context, value, Widget child) {
-                                return NoScaleFlexibleSpaceBar(
-                                    centerTitle: true,
-                                    titlePadding: EdgeInsets.zero,
-                                    title: Center(
-                                      child: DefaultTextStyle(
-                                          style: TextStyle(color: Colors.black, fontSize: _fontSize),
-                                          child: dynamicDuration(value)),
-                                    ),
-                                    background: Column(
-                                      children: [
-                                        Container(
-                                          width: _appbarExpandedHeight,
-                                          height: _appbarExpandedHeight,
-                                          child: CustomPaint(
-                                            painter: TimerPainter(lineNum, _intAnim.value, _isActivated),
-                                            child: Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                const Text('秒', style: TextStyle(color: Colors.transparent)),
-                                                Text(
-                                                  ' ',
-                                                  style: TextStyle(color: Colors.black, fontSize: _fontSize),
-                                                ),
-                                                const Text('秒表', style: TextStyle(color: Colors.black54)),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ));
-                              }),
-                        ),
-                      ];
-                    },
-                    pinnedHeaderSliverHeightBuilder: () {
-                      return pinnedHeaderHeight;
-                    },
-                    body: durationsListView()),
-              ),
+              child: _clockAndDurationList(),
             ),
-            bottomButton(),
+            _bottomButton(),
           ],
         ),
       ),
     );
   }
-
-  bool _handleScrollNotification(ScrollNotification notification) {
-    if (notification is ScrollEndNotification) {
-      if (_sc.offset > 0 && _sc.offset < (_appbarExpandedHeight - _appbarHeight)) {
-        double target = _isAppbarExpanded ? _appbarExpandedHeight - _appbarHeight : 0;
-        _sc.animateTo(target, duration: const Duration(milliseconds: 100), curve: Curves.linear);
-        _isAppbarExpanded = !_isAppbarExpanded;
-      }
-      if (_sc.offset == 0) {
-        _isAppbarExpanded = false;
-      }
-      if (_sc.offset == _appbarExpandedHeight - _appbarHeight) {
-        _isAppbarExpanded = true;
-      }
-    }
-    return false;
+  //旋转计时器以及计次列表
+  Widget _clockAndDurationList() {
+    return NotificationListener<ScrollNotification>(
+      onNotification: _handleScrollNotification,
+      child: extended.NestedScrollView(
+          controller: _sc,
+          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+            return <Widget>[
+              SliverAppBar(
+                expandedHeight: _appbarExpandedHeight,
+                toolbarHeight: _appbarHeight,
+                elevation: 0,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                flexibleSpace: ValueListenableBuilder(
+                    valueListenable: _currentDuration,
+                    builder: (BuildContext context, value, Widget child) {
+                      return NoScaleFlexibleSpaceBar(
+                          centerTitle: true,
+                          titlePadding: EdgeInsets.zero,
+                          title: Center(
+                            child: DefaultTextStyle(
+                                style: TextStyle(color: Colors.black, fontSize: _fontSize),
+                                child: _dynamicDuration(value)),
+                          ),
+                          background: Column(
+                            children: [
+                              Container(
+                                width: _appbarExpandedHeight,
+                                height: _appbarExpandedHeight,
+                                child: CustomPaint(
+                                  painter: TimerPainter(lineNum, _intAnim.value, _isActivated),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text('秒', style: TextStyle(color: Colors.transparent)),
+                                      Text(
+                                        ' ',
+                                        style: TextStyle(color: Colors.black, fontSize: _fontSize),
+                                      ),
+                                      const Text('秒表', style: TextStyle(color: Colors.black54)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ));
+                    }),
+              ),
+            ];
+          },
+          pinnedHeaderSliverHeightBuilder: () {
+            return pinnedHeaderHeight;
+          },
+          body: _durationsListView()),
+    );
   }
-
-  Widget durationsListView() {
+  //计次列表
+  Widget _durationsListView() {
     return CupertinoScrollbar(
       child: DefaultTextStyle(
         style: TextStyle(color: Colors.black, fontSize: 16),
@@ -157,14 +134,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           physics: _isActivated ? AlwaysScrollableScrollPhysics() : NeverScrollableScrollPhysics(),
           itemCount: _durationList.length,
           itemBuilder: (BuildContext context, int index) {
-            return durationItem(index);
+            return _durationItem(index);
           },
         ),
       ),
     );
   }
-
-  Widget durationItem(int index) {
+  //计次列表的每一行
+  Widget _durationItem(int index) {
     String realIndex = (_durationList.length - index).toStringAsFixedFromStart(2);
     if (index == 0) {
       return Padding(
@@ -176,7 +153,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ValueListenableBuilder(
               valueListenable: _currentDuration,
               builder: (BuildContext context, Duration value, Widget child) {
-                return dynamicDuration(value);
+                return _dynamicDuration(value);
               },
             ),
             Spacer(),
@@ -206,8 +183,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       );
     }
   }
-
-  Widget dynamicDuration(Duration value) {
+  ///监听[_currentDuration]刷新[Text]的内容构成动态计时的样式
+  Widget _dynamicDuration(Duration value) {
     List<String> currentDuration = value.toStringAsMyFormat().split('.');
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -222,8 +199,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ],
     );
   }
-
-  Widget bottomButton() {
+  //底部的按钮区域
+  Widget _bottomButton() {
     return Container(
         height: 100,
         padding: EdgeInsets.only(bottom: 20),
@@ -239,7 +216,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           child: Text(_isAnimating ? '计次' : '复位'),
                           shape: CircleBorder(side: BorderSide(color: Colors.grey.shade300, width: 2)),
                           color: Colors.transparent,
-                          onPressed: onCountOrResetPressed,
+                          onPressed: _onCountOrResetPressed,
                         ),
                       ),
                       SizedBox(width: 10),
@@ -251,7 +228,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           shape: CircleBorder(
                               side: BorderSide(color: Colors.grey.shade300, width: _isAnimating ? 2 : 0)),
                           color: _isAnimating ? Colors.transparent : primaryColor,
-                          onPressed: onPauseOrContinuePressed,
+                          onPressed: _onPauseOrContinuePressed,
                         ),
                       ),
                     ],
@@ -263,15 +240,43 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       shape: StadiumBorder(),
                       color: primaryColor,
                       textColor: Colors.white,
-                      child: Text('开始'),
-                      onPressed: onStartPressed,
+                      child: const Text('开始'),
+                      onPressed: _onStartPressed,
                     ),
                   ),
           ],
         ));
   }
-
-  void onStartPressed() {
+  ///通过监听滚动区域滚动状态来实现'自动'展开或收起[SliverAppBar]
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollEndNotification) {
+      if (_sc.offset > 0 && _sc.offset < (_appbarExpandedHeight - _appbarHeight)) {
+        double target = _isAppbarExpanded ? _appbarExpandedHeight - _appbarHeight : 0;
+        _sc.animateTo(target, duration: const Duration(milliseconds: 100), curve: Curves.linear);
+        _isAppbarExpanded = !_isAppbarExpanded;
+      }
+      if (_sc.offset == 0) {
+        _isAppbarExpanded = false;
+      }
+      if (_sc.offset == _appbarExpandedHeight - _appbarHeight) {
+        _isAppbarExpanded = true;
+      }
+    }
+    return false;
+  }
+  ///[_ticker]将会触发的回调
+  void _onTick(Duration elapsed) {
+    DateTime now = DateTime.now();
+    _currentDuration.value = now.difference(_startTime);
+    if (_currentDuration.value.inHours != 0 && _fontSize == 38) {
+      //加入显示小时位的话字体要变小
+      setState(() {
+        _fontSize = 32;
+      });
+    }
+  }
+  //开始 按钮
+  void _onStartPressed() {
     _isActivated = true;
     _isAnimating = true;
     _addACount();
@@ -280,8 +285,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     setState(() {});
     _animationController.repeat();
   }
-
-  void onPauseOrContinuePressed() {
+  //暂停/继续 按钮
+  void _onPauseOrContinuePressed() {
     if (_isAnimating) {
       _animationController.stop(canceled: false);
       _isAnimating = false;
@@ -290,14 +295,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     } else {
       _animationController.repeat();
       _isAnimating = true;
-      _reStartTime = DateTime.now();
-      _startTime = _startTime.add(_reStartTime.difference(_pauseTime));
+      _continueTime = DateTime.now();
+      _startTime = _startTime.add(_continueTime.difference(_pauseTime));
       _ticker.start();
     }
     setState(() {});
   }
-
-  void onCountOrResetPressed() {
+  //计次/重置 按钮
+  void _onCountOrResetPressed() {
     if (_isAnimating) {
       _addACount();
       setState(() {});
@@ -322,16 +327,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 extension IntExtension on int {
   String toStringAsFixedFromStart(int length) {
     String res = this.toString();
-    if (length > res.length) {
-      res = '0' * (length - res.length) + res;
-    }
-    return res;
-  }
-}
-
-extension StringExtension on String {
-  String asFixedByZeroFromStart(int length) {
-    String res = this;
     if (length > res.length) {
       res = '0' * (length - res.length) + res;
     }
