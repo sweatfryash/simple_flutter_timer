@@ -3,11 +3,12 @@ import 'dart:math';
 
 class TimerPainter extends CustomPainter {
 
-  TimerPainter(this.lineNumber, this.longestLineIndex, this.activated);
+  TimerPainter(this.lineNumber, this.longestLineIndexAnim, this.activated)
+      : super(repaint: longestLineIndexAnim);
 
   final int lineNumber;
   ///短线数量
-  final int longestLineIndex;
+  final Animation<int> longestLineIndexAnim;
   ///当前最长中线的位置
   final bool activated;
   final double longLength = 20;
@@ -40,38 +41,34 @@ class TimerPainter extends CustomPainter {
       ..color = Colors.deepOrangeAccent
       ..strokeWidth = 1;
 
-    final double centerHeight = size.height / 2;
+    final double centerWidth = size.width / 2;
     ///每一次旋转的度
     double radians = 2 * pi / lineNumber;
-
-    void fixedRotate(double radians) {
-      canvas.translate(size.width / 2, size.height / 2);
-      canvas.rotate(radians);
-      canvas.translate(-size.width / 2, -size.height / 2);
-    }
 
     void drawLine(int index){
       if (activated && index < halfColoredCount) {
         if (index == halfColoredCount) {
-          canvas.drawLine(Offset(longLength, centerHeight), Offset(longLength, centerHeight), paint2);
+          canvas.drawLine(Offset(centerWidth-longLength, 0), Offset(centerWidth-longLength, 0), paint2);
         } else {
           canvas.drawLine(
-              Offset(coloredLineLengthList[index], centerHeight), Offset(longLength, centerHeight), paint2);
+              Offset(centerWidth-coloredLineLengthList[index], 0), Offset(centerWidth-longLength, 0), paint2);
         }
       } else {
-        canvas.drawLine(Offset(deltaLength, centerHeight), Offset(longLength, centerHeight), paint);
+        canvas.drawLine(Offset(centerWidth-deltaLength, 0), Offset(centerWidth-longLength, 0), paint);
       }
     }
 
     ///将中线旋转到对应位置，靠这个来实现旋转动画
-    fixedRotate(radians * longestLineIndex);
+    canvas.translate(size.width / 2,size.height /2);
+    canvas.rotate(radians * longestLineIndexAnim.value);
     for (int index = 0; index <= lineNumber / 2; index++) {
-      fixedRotate(radians);
+      canvas.rotate(radians);
       drawLine(index);
     }
-    fixedRotate(-pi);
+
+    canvas.rotate(-pi);
     for (int index = 0; index <= lineNumber / 2; index++) {
-      fixedRotate(-radians);
+      canvas.rotate(-radians);
       drawLine(index);
     }
 

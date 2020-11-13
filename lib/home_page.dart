@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final ScrollController _sc = ScrollController();
   Ticker _ticker; //在此ticker的回调中触发计时功能
   double get _pinnedHeaderHeight => _isActivated ? 120 : 290;
-
+  var _runAnimateTo;  //sc在执行animateTo()的过程中被滚动打断滚动功能就崩溃了，这个变量用来解决（凑合）这个问题
   @override
   void initState() {
     super.initState();
@@ -40,6 +40,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _animationController = AnimationController(duration: const Duration(milliseconds: 2000), vsync: this);
     ///实际上控制了圈圈的旋转效果[_intAnim.value]是最长彩色短线的位置，变换后就形成了动画效果
     _intAnim = IntTween(begin: 0, end: _lineNum).animate(_animationController);
+
   }
 
   @override
@@ -84,6 +85,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 backgroundColor: Theme.of(context).scaffoldBackgroundColor,
                 flexibleSpace: ValueListenableBuilder(
                     valueListenable: _currentDuration,
+                    child: Column(
+                      children: [
+                        Container(
+                          width: _appbarExpandedHeight,
+                          height: _appbarExpandedHeight,
+                          child: CustomPaint(
+                            painter: TimerPainter(_lineNum, _intAnim, _isActivated),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text('秒', style: TextStyle(color: Colors.transparent)),
+                                Text(
+                                  ' ',
+                                  style: TextStyle(color: Colors.black, fontSize: _fontSize),
+                                ),
+                                const Text('秒表', style: TextStyle(color: Colors.black54)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     builder: (BuildContext context, value, Widget child) {
                       return NoScaleFlexibleSpaceBar(
                           centerTitle: true,
@@ -93,28 +116,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 style: TextStyle(color: Colors.black, fontSize: _fontSize),
                                 child: _dynamicDuration(value)),
                           ),
-                          background: Column(
-                            children: [
-                              Container(
-                                width: _appbarExpandedHeight,
-                                height: _appbarExpandedHeight,
-                                child: CustomPaint(
-                                  painter: TimerPainter(_lineNum, _intAnim.value, _isActivated),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Text('秒', style: TextStyle(color: Colors.transparent)),
-                                      Text(
-                                        ' ',
-                                        style: TextStyle(color: Colors.black, fontSize: _fontSize),
-                                      ),
-                                      const Text('秒表', style: TextStyle(color: Colors.black54)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ));
+                          background: child);
                     }),
               ),
             ];
@@ -252,14 +254,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     if (notification is ScrollEndNotification) {
       if (_sc.offset > 0 && _sc.offset < (_appbarExpandedHeight - _appbarHeight)) {
         double target = _isAppbarExpanded ? _appbarExpandedHeight - _appbarHeight : 0;
-        _sc.animateTo(target, duration: const Duration(milliseconds: 100), curve: Curves.linear);
-        _isAppbarExpanded = !_isAppbarExpanded;
-      }
-      if (_sc.offset == 0) {
-        _isAppbarExpanded = false;
-      }
-      if (_sc.offset == _appbarExpandedHeight - _appbarHeight) {
-        _isAppbarExpanded = true;
+        Future.delayed(Duration.zero,() async{
+          if(_runAnimateTo != null){
+            await _runAnimateTo;
+          }
+          _runAnimateTo = _sc.animateTo(
+              target, duration: const Duration(milliseconds: 80), curve: Curves.linear);
+        }).then((value) {
+          if (_sc.offset == 0) {
+            _isAppbarExpanded = true;
+          }
+          if (_sc.offset == _appbarExpandedHeight - _appbarHeight) {
+            _isAppbarExpanded = false;
+          }
+        });
       }
     }
     return false;
@@ -321,6 +329,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   //计次
   void _addACount() {
     _durationList.insert(0, _currentDuration.value);
+  }
+
+  double calculateTextWidth(String value, double fontSize, double maxWidth, int maxLines) {
+    TextPainter painter = TextPainter(
+        maxLines: maxLines,
+        textDirection: TextDirection.ltr,
+        text: TextSpan(
+            text: value,
+            style: TextStyle(
+              fontSize: fontSize,
+            )));
+    painter.layout(maxWidth: maxWidth);
+    ///文字的宽度:painter.width
+    return painter.width;
   }
 }
 
