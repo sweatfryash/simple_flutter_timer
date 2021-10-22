@@ -7,15 +7,14 @@ class NoScaleFlexibleSpaceBar extends StatefulWidget {
   ///
   /// Most commonly used in the [AppBar.flexibleSpace] field.
   const NoScaleFlexibleSpaceBar({
-    Key key,
-    this.title,
-    this.background,
-    this.centerTitle,
-    this.titlePadding,
+    Key? key,
+    required this.title,
+    required this.background,
+    required this.centerTitle,
+    required this.titlePadding,
     this.collapseMode = CollapseMode.parallax,
     this.stretchModes = const <StretchMode>[StretchMode.zoomBackground],
-  }) : assert(collapseMode != null),
-        super(key: key);
+  }) : super(key: key);
 
   /// The primary contents of the flexible space bar when expanded.
   ///
@@ -25,13 +24,13 @@ class NoScaleFlexibleSpaceBar extends StatefulWidget {
   /// Shown behind the [title] when expanded.
   ///
   /// Typically an [Image] widget with [Image.fit] set to [BoxFit.cover].
-  final Widget background;
+  final Widget? background;
 
   /// Whether the title should be centered.
   ///
   /// By default this property is true if the current target platform
   /// is [TargetPlatform.iOS] or [TargetPlatform.macOS], false otherwise.
-  final bool centerTitle;
+  final bool? centerTitle;
 
   /// Collapse effect while scrolling.
   ///
@@ -53,7 +52,7 @@ class NoScaleFlexibleSpaceBar extends StatefulWidget {
   /// By default the value of this property is
   /// `EdgeInsetsDirectional.only(start: 72, bottom: 16)` if the title is
   /// not centered, `EdgeInsetsDirectional.only(start: 0, bottom: 16)` otherwise.
-  final EdgeInsetsGeometry titlePadding;
+  final EdgeInsetsGeometry? titlePadding;
 
   /// Wraps a widget that contains an [AppBar] to convey sizing information down
   /// to the [NoScaleFlexibleSpaceBar].
@@ -73,13 +72,12 @@ class NoScaleFlexibleSpaceBar extends StatefulWidget {
   ///  * [FlexibleSpaceBarSettings] which creates a settings object that can be
   ///    used to specify these settings to a [FlexibleSpaceBar].
   static Widget createSettings({
-    double toolbarOpacity,
-    double minExtent,
-    double maxExtent,
-    @required double currentExtent,
-    @required Widget child,
+    double? toolbarOpacity,
+    double? minExtent,
+    double? maxExtent,
+    required double currentExtent,
+    required Widget child,
   }) {
-    assert(currentExtent != null);
     return FlexibleSpaceBarSettings(
       toolbarOpacity: toolbarOpacity ?? 1.0,
       minExtent: minExtent ?? currentExtent,
@@ -90,14 +88,13 @@ class NoScaleFlexibleSpaceBar extends StatefulWidget {
   }
 
   @override
-  _NoScaleFlexibleSpaceBarState createState() => _NoScaleFlexibleSpaceBarState();
+  _NoScaleFlexibleSpaceBarState createState() =>
+      _NoScaleFlexibleSpaceBarState();
 }
 
 class _NoScaleFlexibleSpaceBarState extends State<NoScaleFlexibleSpaceBar> {
-  bool _getEffectiveCenterTitle(ThemeData theme) {
-    if (widget.centerTitle != null)
-      return widget.centerTitle;
-    assert(theme.platform != null);
+  bool? _getEffectiveCenterTitle(ThemeData theme) {
+    if (widget.centerTitle != null) return widget.centerTitle;
     switch (theme.platform) {
       case TargetPlatform.android:
       case TargetPlatform.fuchsia:
@@ -108,21 +105,17 @@ class _NoScaleFlexibleSpaceBarState extends State<NoScaleFlexibleSpaceBar> {
       case TargetPlatform.macOS:
         return true;
     }
-    return null;
   }
 
   Alignment _getTitleAlignment(bool effectiveCenterTitle) {
-    if (effectiveCenterTitle)
-      return Alignment.bottomCenter;
+    if (effectiveCenterTitle) return Alignment.bottomCenter;
     final TextDirection textDirection = Directionality.of(context);
-    assert(textDirection != null);
     switch (textDirection) {
       case TextDirection.rtl:
         return Alignment.bottomRight;
       case TextDirection.ltr:
         return Alignment.bottomLeft;
     }
-    return null;
   }
 
   double _getCollapsePadding(double t, FlexibleSpaceBarSettings settings) {
@@ -135,142 +128,141 @@ class _NoScaleFlexibleSpaceBarState extends State<NoScaleFlexibleSpaceBar> {
         final double deltaExtent = settings.maxExtent - settings.minExtent;
         return -Tween<double>(begin: 0.0, end: deltaExtent / 4.0).transform(t);
     }
-    return null;
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
-          final FlexibleSpaceBarSettings settings = context.dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
-          assert(
-          settings != null,
-          'A FlexibleSpaceBar must be wrapped in the widget returned by FlexibleSpaceBar.createSettings().',
-          );
+      final FlexibleSpaceBarSettings? settings = context
+          .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
+      assert(
+        settings != null,
+        'A FlexibleSpaceBar must be wrapped in the widget returned by FlexibleSpaceBar.createSettings().',
+      );
 
-          final List<Widget> children = <Widget>[];
+      final List<Widget> children = <Widget>[];
 
-          final double deltaExtent = settings.maxExtent - settings.minExtent;
+      final double deltaExtent = settings!.maxExtent - settings.minExtent;
 
-          // 0.0 -> Expanded
-          // 1.0 -> Collapsed to toolbar
-          final double t = (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent).clamp(0.0, 1.0) as double;
+      // 0.0 -> Expanded
+      // 1.0 -> Collapsed to toolbar
+      final double t =
+          (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent)
+              .clamp(0.0, 1.0);
 
-          // background
-          if (widget.background != null) {
-            final double fadeStart = math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
-            const double fadeEnd = 1.0;
-            assert(fadeStart <= fadeEnd);
-            final double opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
-            double height = settings.maxExtent;
+      // background
+      if (widget.background != null) {
+        final double fadeStart =
+            math.max(0.0, 1.0 - kToolbarHeight / deltaExtent);
+        const double fadeEnd = 1.0;
+        assert(fadeStart <= fadeEnd);
+        final double opacity = 1.0 - Interval(fadeStart, fadeEnd).transform(t);
+        double height = settings.maxExtent;
 
-            // StretchMode.zoomBackground
-            if (widget.stretchModes.contains(StretchMode.zoomBackground) &&
-                constraints.maxHeight > height) {
-              height = constraints.maxHeight;
-            }
-            children.add(Positioned(
-              top: _getCollapsePadding(t, settings),
-              left: 0.0,
-              right: 0.0,
-              height: height,
-              child: Opacity(
-                // IOS is relying on this semantics node to correctly traverse
-                // through the app bar when it is collapsed.
-                alwaysIncludeSemantics: true,
-                opacity: opacity,
-                child: widget.background,
-              ),
-            ));
-
-            // StretchMode.blurBackground
-            if (widget.stretchModes.contains(StretchMode.blurBackground) &&
-                constraints.maxHeight > settings.maxExtent) {
-              final double blurAmount = (constraints.maxHeight - settings.maxExtent) / 10;
-              children.add(Positioned.fill(
-                  child: BackdropFilter(
-                      child: Container(
-                        color: Colors.transparent,
-                      ),
-                      filter: ui.ImageFilter.blur(
-                        sigmaX: blurAmount,
-                        sigmaY: blurAmount,
-                      )
-                  )
-              ));
-            }
-          }
-
-          // title
-          if (widget.title != null) {
-            final ThemeData theme = Theme.of(context);
-
-            Widget title;
-            switch (theme.platform) {
-              case TargetPlatform.iOS:
-              case TargetPlatform.macOS:
-                title = widget.title;
-                break;
-              case TargetPlatform.android:
-              case TargetPlatform.fuchsia:
-              case TargetPlatform.linux:
-              case TargetPlatform.windows:
-                title = Semantics(
-                  namesRoute: true,
-                  child: widget.title,
-                );
-                break;
-            }
-
-            // StretchMode.fadeTitle
-            if (widget.stretchModes.contains(StretchMode.fadeTitle) &&
-                constraints.maxHeight > settings.maxExtent) {
-              final double stretchOpacity = 1 -
-                  (((constraints.maxHeight - settings.maxExtent) / 100).clamp(0.0, 1.0) as double);
-              title = Opacity(
-                opacity: stretchOpacity,
-                child: title,
-              );
-            }
-
-            final double opacity = settings.toolbarOpacity;
-            if (opacity > 0.0) {
-              TextStyle titleStyle = theme.primaryTextTheme.headline6;
-              titleStyle = titleStyle.copyWith(
-                  color: titleStyle.color.withOpacity(opacity)
-              );
-              final bool effectiveCenterTitle = _getEffectiveCenterTitle(theme);
-              final EdgeInsetsGeometry padding = widget.titlePadding ??
-                  EdgeInsetsDirectional.only(
-                    start: effectiveCenterTitle ? 0.0 : 72.0,
-                    bottom: 16.0,
-                  );
-              final double scaleValue = Tween<double>(begin: 1.5, end: 1.0).transform(t);
-              final Alignment titleAlignment = _getTitleAlignment(effectiveCenterTitle);
-              children.add(Container(
-                padding: padding,
-                child: Align(
-                    alignment: titleAlignment,
-                    child: DefaultTextStyle(
-                      style: titleStyle,
-                      child: LayoutBuilder(
-                          builder: (BuildContext context, BoxConstraints constraints) {
-                            return Container(
-                              width: constraints.maxWidth / scaleValue,
-                              alignment: titleAlignment,
-                              child: title,
-                            );
-                          }
-                      ),
-                    ),
-                  ),
-
-              ));
-            }
-          }
-
-          return ClipRect(child: Stack(children: children));
+        // StretchMode.zoomBackground
+        if (widget.stretchModes.contains(StretchMode.zoomBackground) &&
+            constraints.maxHeight > height) {
+          height = constraints.maxHeight;
         }
-    );
+        children.add(Positioned(
+          top: _getCollapsePadding(t, settings),
+          left: 0.0,
+          right: 0.0,
+          height: height,
+          child: Opacity(
+            // IOS is relying on this semantics node to correctly traverse
+            // through the app bar when it is collapsed.
+            alwaysIncludeSemantics: true,
+            opacity: opacity,
+            child: widget.background,
+          ),
+        ));
+
+        // StretchMode.blurBackground
+        if (widget.stretchModes.contains(StretchMode.blurBackground) &&
+            constraints.maxHeight > settings.maxExtent) {
+          final double blurAmount =
+              (constraints.maxHeight - settings.maxExtent) / 10;
+          children.add(Positioned.fill(
+              child: BackdropFilter(
+                  child: Container(
+                    color: Colors.transparent,
+                  ),
+                  filter: ui.ImageFilter.blur(
+                    sigmaX: blurAmount,
+                    sigmaY: blurAmount,
+                  ))));
+        }
+      }
+
+      // title
+      final ThemeData theme = Theme.of(context);
+
+      Widget title;
+      switch (theme.platform) {
+        case TargetPlatform.iOS:
+        case TargetPlatform.macOS:
+          title = widget.title;
+          break;
+        case TargetPlatform.android:
+        case TargetPlatform.fuchsia:
+        case TargetPlatform.linux:
+        case TargetPlatform.windows:
+          title = Semantics(
+            namesRoute: true,
+            child: widget.title,
+          );
+          break;
+      }
+
+      // StretchMode.fadeTitle
+      if (widget.stretchModes.contains(StretchMode.fadeTitle) &&
+          constraints.maxHeight > settings.maxExtent) {
+        final double stretchOpacity = 1 -
+            (((constraints.maxHeight - settings.maxExtent) / 100)
+                .clamp(0.0, 1.0));
+        title = Opacity(
+          opacity: stretchOpacity,
+          child: title,
+        );
+      }
+
+      final double opacity = settings.toolbarOpacity;
+      if (opacity > 0.0) {
+        TextStyle titleStyle = theme.primaryTextTheme.headline6!;
+        titleStyle =
+            titleStyle.copyWith(color: titleStyle.color!.withOpacity(opacity));
+        final bool effectiveCenterTitle = _getEffectiveCenterTitle(theme)!;
+        final EdgeInsetsGeometry padding = widget.titlePadding ??
+            EdgeInsetsDirectional.only(
+              start: effectiveCenterTitle ? 0.0 : 72.0,
+              bottom: 16.0,
+            );
+        final double scaleValue =
+            Tween<double>(begin: 1.5, end: 1.0).transform(t);
+        final Alignment titleAlignment =
+            _getTitleAlignment(effectiveCenterTitle);
+        children.add(Container(
+          padding: padding,
+          child: Align(
+            alignment: titleAlignment,
+            child: DefaultTextStyle(
+              style: titleStyle,
+              child: LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints constraints) {
+                return Container(
+                  width: constraints.maxWidth / scaleValue,
+                  alignment: titleAlignment,
+                  child: title,
+                );
+              }),
+            ),
+          ),
+        ));
+      }
+
+      return ClipRect(child: Stack(children: children));
+    });
   }
 }

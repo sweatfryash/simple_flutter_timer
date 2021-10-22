@@ -18,8 +18,9 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: HomePage(),
-      builder: (BuildContext c, Widget w) {
-        return ScrollConfiguration(behavior: const NoGlowScrollBehavior(), child: w);
+      builder: (BuildContext c, Widget? w) {
+        return ScrollConfiguration(
+            behavior: const NoGlowScrollBehavior(), child: w!);
       },
     );
   }
@@ -29,5 +30,6 @@ class NoGlowScrollBehavior extends ScrollBehavior {
   const NoGlowScrollBehavior();
 
   @override
-  Widget buildViewportChrome(BuildContext _, Widget child, AxisDirection __) => child;
+  Widget buildViewportChrome(BuildContext _, Widget child, AxisDirection __) =>
+      child;
 }
